@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e -o pipefail
+shopt -s dotglob extglob globstar nullglob
+cd -- "${0%/*}"
+
+if ! type -t firecracker >/dev/null; then
+  echo 'Missing hypervisor: firecracker not found' 2>&1
+  exit 1
+elif [[ ! -f ../../guest/boot/linux-amd64 ]]; then
+  echo 'Missing kernel: ../../guest/boot/linux-amd64 not found' 2>&1
+  exit 1
+elif [[ ! -f ../boot/ramfs.cpio ]]; then
+  echo 'Missing initramfs: ../boot/ramfs.cpio not found' 2>&1
+  exit 1
+fi
+
+exec firecracker --config-file /dev/fd/3 --no-api 3<<EOF
+{
+  "boot-source": {
+    "kernel_image_path": "../../guest/boot/linux-amd64",
+    "initrd_path": "../boot/ramfs.cpio",
+    "boot_args": "quiet"
+  },
+  "machine-config": {
+    "vcpu_count": 1,
+    "mem_size_mib": 1024
+  },
+  "drives": []
+}
+EOF
